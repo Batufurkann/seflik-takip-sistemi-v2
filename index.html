@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koyuncu Orman İşletme Şefliği - Üretim ve Bölme Takip Sistemi</title>
+  
+  <!-- SEO Meta Etiketleri -->
+  <meta name="description" content="Koyuncu Orman İşletme Şefliği için orman bölmeleri, sözleşme süreleri ve ölçü tespit üretim gerçekleşmelerini izleme paneli.">
+  <meta name="author" content="Antigravity">
+  
+  <!-- PWA Meta Etiketleri ve Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1b5e20">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <!-- CSS Stilleri -->
+  <link rel="stylesheet" href="css/stylev2.css">
+  
+  <!-- Chart.js Kütüphanesi -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Lucide Simgeleri (Modern Icons) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- SheetJS xlsx-js-style Kütüphanesi -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- YAN MENÜ (SIDEBAR) -->
+    <aside class="sidebar">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">
+            <i data-lucide="trees"></i>
+          </div>
+          <div class="brand-name">
+            <h2>Koyuncu</h2>
+            <p>Orman İşletme Şefliği</p>
+          </div>
+        </div>
+        
+        <nav class="menu-list">
+          <a class="menu-item active" data-tab="dashboard">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Gösterge Paneli</span>
+          </a>
+          <a class="menu-item" data-tab="compartments">
+            <i data-lucide="folder-tree"></i>
+            <span>Bölme Kayıtları</span>
+          </a>
+          <a class="menu-item" data-tab="measurements">
+            <i data-lucide="clipboard-signature"></i>
+            <span>Ölçü Tespit Girişleri</span>
+          </a>
+          <a class="menu-item" data-tab="rampa">
+            <i data-lucide="layers"></i>
+            <span>Rampa İstif</span>
+          </a>
+          <a class="menu-item" data-tab="seflik">
+            <i data-lucide="building-2"></i>
+            <span>Şeflik Paneli</span>
+          </a>
+          <a class="menu-item" data-tab="settings">
+            <i data-lucide="settings"></i>
+            <span>Yedekleme ve Ayarlar</span>
+          </a>
+        </nav>
+      </div>
+      
+      <div class="sidebar-footer">
+        <button id="themeToggle" class="theme-toggle-btn">
+          <i data-lucide="moon"></i>
+          <span>Karanlık Mod</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ANA İÇERİK ALANI -->
+    <main class="main-content">
+      
+      <!-- ÜST BANNER (Turuncu Renk - Excel Görselindeki Gibi) -->
+      <header class="top-banner" id="topBanner">
+        <h1>Koyuncu Orman İşletme Şefliği</h1>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div class="top-banner-meta">
+            <i data-lucide="calendar" style="width: 14px; height: 14px; display: inline; vertical-align: middle; margin-right: 4px;"></i>
+            <span>Çalışma Yılı:</span>
+          </div>
+          <select id="yearSelect" class="filter-select" style="background-color: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); color: white; padding: 0.4rem 2rem 0.4rem 1rem; font-weight: 700;">
+            <option value="2025" style="color: black;">2025</option>
+            <option value="2026" style="color: black;">2026</option>
+            <option value="2027" style="color: black;">2027</option>
+          </select>
+        </div>
+      </header>
+
+      <!-- ========================================== -->
+      <!-- SEKME 1: GÖSTERGE PANELİ (DASHBOARD) -->
+      <!-- ========================================== -->
+      <section id="dashboardTab" class="tab-content active">
+        <!-- Hızlı Özet Kartları -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-info">
+              <span class="stat-label">Toplam Bölme Sayısı</span>
+              <span id="widgetTotalComps" class="stat-value">0</span>
+              <span class="stat-desc">Planlanmış orman sahası</span>
+            </div>
+            <div class="stat-icon green">
+              <i data-lucide="layers"></i>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <span class="stat-label">Devam Eden Üretimler</span>
+              <span id="widgetActiveComps" class="stat-value">0</span>
+              <span class="stat-desc">Aktif kesim yapılan sahalar</span>
+            </div>
+            <div class="stat-icon blue">
+              <i data-lucide="activity"></i>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <span class="stat-label">Tamamlanan Bölmeler</span>
+              <span id="widgetCompletedComps" class="stat-value">0</span>
+              <span class="stat-desc">Üretimi bitirilmiş sahalar</span>
+            </div>
+            <div class="stat-icon gold">
+              <i data-lucide="check-square"></i>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <span class="stat-label">Planlanan Hacim</span>
+              <span id="widgetTotalPlan" class="stat-value">0 m³</span>
+              <span class="stat-desc">Toplam dikili planlama</span>
+            </div>
+            <div class="stat-icon orange">
+              <i data-lucide="trending-up"></i>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <span class="stat-label">Rampada Bekleyen Miktar</span>
+              <span id="widgetRampaWaiting" class="stat-value">0 Ster</span>
+              <span class="stat-desc">Rampada/depoda kalan istif miktarı</span>
+            </div>
+            <div class="stat-icon purple">
+              <i data-lucide="boxes"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gerçekleşen Hacim ve İlerleme -->
+        <div class="stat-card" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 style="font-family: var(--font-title); font-size: 1.1rem; font-weight: 700;">Yıllık Toplam Gerçekleşme (Ölçülen Miktar)</h3>
+              <p style="font-size: 0.8rem; color: var(--text-secondary);">Girdiğiniz ölçü tespit kayıtlarına göre hesaplanan toplam m³ üretimi</p>
+            </div>
+            <div style="text-align: right;">
+              <span id="widgetTotalRealized" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0 m³</span>
+              <span id="widgetOverallProgress" class="badge badge-success" style="font-size: 0.95rem; padding: 0.3rem 0.8rem; margin-left: 0.5rem;">%0</span>
+            </div>
+          </div>
+          <div class="progress-bar-bg" style="height: 12px; border-radius: 6px;">
+            <div id="dashboardProgressBar" class="progress-bar-fill progress-green" style="width: 0%; border-radius: 6px;"></div>
+          </div>
+        </div>
+
+        <!-- Bölme Üretim Durum Haritası -->
+        <div class="chart-card wide">
+          <div class="chart-header" style="flex-wrap: wrap; gap: 0.5rem;">
+            <span class="chart-title" style="display: flex; align-items: center; gap: 0.5rem;">
+              <i data-lucide="grid" style="color: var(--primary); width: 20px;"></i>
+              <span>Bölme Üretim Durum Haritası (Seçilen Yıl)</span>
+            </span>
+            <div class="legend-indicators" style="margin-left: auto;">
+              <div class="legend-item"><div class="legend-color" style="background-color: #ea5455;"></div><span>Kritik (<%40)</span></div>
+              <div class="legend-item"><div class="legend-color" style="background-color: #f59e0b;"></div><span>Orta (%40-80)</span></div>
+              <div class="legend-item"><div class="legend-color" style="background-color: #22c55e;"></div><span>İyi (%80+)</span></div>
+              <div class="legend-item"><div class="legend-color" style="background-color: var(--primary);"></div><span>Tamamlandı</span></div>
+            </div>
+          </div>
+          <div id="compartmentGrid" class="compartment-grid-container">
+            <!-- Dinamik Bölme Kartları JS Tarafından Yüklenecek -->
+          </div>
+        </div>
+
+        <!-- Grafikler Izgarası (Chart.js) -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title">Emval Türüne Göre Üretim (m³)</span>
+              <i data-lucide="pie-chart" class="text-secondary" style="width: 18px;"></i>
+            </div>
+            <div class="chart-container">
+              <canvas id="speciesChart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title">Emval Cinsine Göre Üretim Dağılımı (%)</span>
+              <i data-lucide="percent" class="text-secondary" style="width: 18px;"></i>
+            </div>
+            <div class="chart-container">
+              <canvas id="assortmentChart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card wide">
+            <div class="chart-header">
+              <span class="chart-title" id="monthlyChartTitle">Aylık Üretim Durumu (Planlanan vs. Ölçülen m³)</span>
+              <i data-lucide="bar-chart-3" class="text-secondary" style="width: 18px;"></i>
+            </div>
+            <div class="chart-container-slider" style="position: relative; height: 300px; overflow: hidden; width: 100%;">
+              <div class="chart-slide" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: opacity 0.3s ease-in-out, visibility 0.3s; opacity: 1; visibility: visible; pointer-events: auto;" id="monthlyChartSlide">
+                <canvas id="monthlyChart"></canvas>
+              </div>
+              <div class="chart-slide" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: opacity 0.3s ease-in-out, visibility 0.3s; opacity: 0; visibility: hidden; pointer-events: none;" id="cumulativeChartSlide">
+                <canvas id="cumulativeChart"></canvas>
+              </div>
+            </div>
+            <!-- Pagination Dots (Yuvarlaklar) -->
+            <div class="chart-dots-container" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.75rem;">
+              <span class="chart-dot" style="width: 10px; height: 10px; border-radius: 50%; background-color: var(--primary); cursor: pointer;" onclick="switchChartSlide(0)"></span>
+              <span class="chart-dot" style="width: 10px; height: 10px; border-radius: 50%; background-color: var(--border-color); cursor: pointer;" onclick="switchChartSlide(1)"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- YÜKLENİCİ PERFORMANS RAPORU -->
+        <div class="chart-card wide" style="margin-top: 1.5rem;" id="contractorPerformanceCard">
+          <div class="chart-header">
+            <h3 class="chart-title" style="display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-title); font-weight: 700; font-size: 1.1rem;">
+              <i data-lucide="users"></i>
+              <span>Yüklenici Performans Raporu</span>
+            </h3>
+            <i data-lucide="trending-up" class="text-secondary" style="width: 18px;"></i>
+          </div>
+          <p class="settings-card-desc" style="margin-bottom: 0.5rem; font-size: 0.8rem;">Yüklenicilerin üstlendikleri bölmeler, toplam iş sayıları, planlanan ve gerçekleşen üretimler, ek süre ve gecikme durumları özeti.</p>
+          <div class="table-container" style="overflow-x: auto;">
+            <table class="table-responsive" style="font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th style="text-align: left; min-width: 165px;">Yüklenici (Kooperatif / Şahıs)</th>
+                  <th style="text-align: center;">Bölme No</th>
+                  <th style="text-align: center;">Bölme Durumu</th>
+                  <th style="text-align: right;">Planlanan Hacim (m³)</th>
+                  <th style="text-align: right;">Gerçekleşen Hacim (m³)</th>
+                  <th style="text-align: center; width: 140px;">Tamamlama Oranı</th>
+                  <th style="text-align: center;">Verilen Süre <span style="font-size: 0.7rem; font-weight: 500; display: block; color: var(--text-secondary);">(Ek Süre Hariç)</span></th>
+                  <th style="text-align: center;">Ek Süre (Gün)</th>
+                  <th style="text-align: left; min-width: 175px;">Ağırlıklı Üretilen Emval <span style="font-size: 0.7rem; font-weight: 500; display: block; color: var(--text-secondary);">(Tür / Ürün Cinsi)</span></th>
+                  <th style="text-align: center;">Sözleşme / Performans</th>
+                </tr>
+              </thead>
+              <tbody id="contractorPerformanceTableBody">
+                <!-- JS ile dinamik dolacak -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Sözleşme Gecikme ve Kritik Durum Uyarıları -->
+        <div>
+          <h3 style="font-family: var(--font-title); font-size: 1.1rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="bell-ring" style="color: var(--secondary); width: 20px;"></i>
+            <span>Kritik Sözleşme Bildirimleri</span>
+          </h3>
+          <div id="dashboardAlerts" class="notification-list">
+            <!-- Dinamik olarak dolacak -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SEKME 2: BÖLMELER LİSTESİ (COMPARTMENTS) -->
+      <!-- ========================================== -->
+      <section id="compartmentsTab" class="tab-content">
+        <div class="table-header-actions">
+          <div class="filter-bar">
+            <input type="text" id="compSearch" class="search-input" placeholder="Bölme no veya yüklenici ara...">
+            <select id="compStatusFilter" class="filter-select">
+              <option value="all">Tüm Durumlar</option>
+              <option value="Devam Ediyor">Devam Ediyor</option>
+              <option value="Bitti">Bitti</option>
+              <option value="Daha Başlamadı">Daha Başlamadı</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="openCompartmentModal(false)">
+            <i data-lucide="plus-circle"></i>
+            <span>Yeni Bölme Ekle</span>
+          </button>
+        </div>
+
+        <!-- Excel Stilindeki Bölme Tablosu -->
+        <div class="table-container">
+          <table class="table-responsive">
+            <thead>
+              <tr>
+                <th style="width: 80px;">İşlem</th>
+                <th>Bölme No</th>
+                <th>Üretim Durumu</th>
+                <th>Üretim Şekli</th>
+                <th>Kesim Nevi</th>
+                <th class="excel-cell-number">Plan İbreli (m³)</th>
+                <th class="excel-cell-number">Plan Yapraklı (m³)</th>
+                <th class="excel-cell-number">Plan Toplam (m³)</th>
+                <th class="excel-cell-number">Ölçülen İbreli (m³)</th>
+                <th class="excel-cell-number">Ölçülen Yapraklı (m³)</th>
+                <th class="excel-cell-number">Ölçülen Toplam (m³)</th>
+                <th>Yüklenici</th>
+                <th>Sözleşme Süresi</th>
+                <th>Kalan Süre Durumu</th>
+              </tr>
+            </thead>
+            <tbody id="compartmentsTableBody">
+              <!-- Dinamik dolacak -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SEKME 3: ÖLÇÜ TESPİT GİRİŞLERİ (MEASUREMENTS) -->
+      <!-- ========================================== -->
+      <section id="measurementsTab" class="tab-content">
+        <div class="table-header-actions">
+          <div class="filter-bar">
+            <input type="text" id="measSearch" class="search-input" placeholder="Bölme, cins veya tür ara...">
+            <select id="measDepoFilter" class="filter-select">
+              <option value="all">Tüm Depolar</option>
+              <!-- Dinamik dolacak -->
+            </select>
+          </div>
+          <button class="btn btn-secondary" onclick="openMeasurementModal(false)">
+            <i data-lucide="plus-circle"></i>
+            <span>Yeni Ölçü Girişi Yap</span>
+          </button>
+        </div>
+
+        <!-- Ölçü Tespit Tablosu -->
+        <div class="table-container">
+          <table class="table-responsive">
+            <thead>
+              <tr>
+                <th style="width: 80px; text-align: center;">İşlem</th>
+                <th style="text-align: center;">Sıra No</th>
+                <th style="text-align: center;">Bölme No</th>
+                <th style="text-align: center;">Kesim Nevi</th>
+                <th style="text-align: center;">Ağaç Türü</th>
+                <th style="text-align: left;">Ürün Cinsi</th>
+                <th style="text-align: center;">Adet</th>
+                <th style="text-align: center;">Hacim (m³)</th>
+                <th style="text-align: center;">Miktar (Ster)</th>
+                <th style="text-align: center;">Depo / Rampa</th>
+                <th style="text-align: center;">Ölçüm Tarihi</th>
+              </tr>
+            </thead>
+            <tbody id="measurementsTableBody">
+              <!-- Dinamik dolacak -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SEKME 3b: RAMPA İSTİF PANELİ (RAMPA) -->
+      <!-- ========================================== -->
+      <section id="rampaTab" class="tab-content">
+        <div class="rampa-layout-grid">
+          <!-- Sol Taraf: Kayıt Listesi -->
+          <div class="table-container" style="flex: 2; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <h3 style="font-family: var(--font-title); font-weight: 700; font-size: 1.2rem; color: var(--primary);">
+                Rampa İstif Kayıtları (Seçilen Yıl)
+              </h3>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <input type="text" id="rampaSearch" class="search-input" placeholder="Bölme veya emval ara..." style="min-width: 180px;">
+                <button class="btn btn-primary" onclick="openRampaModal(false)">
+                  <i data-lucide="plus-circle"></i>
+                  <span>Yeni İstif Ekle</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="table-container" style="max-height: calc(100vh - 340px); min-height: 250px; overflow-y: auto;">
+              <table class="table-responsive">
+                <thead>
+                  <tr>
+                    <th style="width: 80px; text-align: center;">İşlem</th>
+                    <th style="text-align: center;">İstif No</th>
+                    <th style="text-align: left;">Emvalin Cinsi</th>
+                    <th style="text-align: center;">Miktar (Ster)</th>
+                    <th style="text-align: center;">Bölme No</th>
+                    <th style="text-align: center;">Rampada</th>
+                    <th style="text-align: center;">Satıldı</th>
+                    <th style="text-align: center;">Rampadan Kalktı</th>
+                  </tr>
+                </thead>
+                <tbody id="rampaTableBody">
+                  <!-- JS ile dinamik dolacak -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sağ Taraf: Özet Toplamlar -->
+          <div class="settings-card" style="flex: 1.2; padding: 1.5rem;">
+            <h3 class="settings-card-title" style="color: var(--secondary); font-size: 1.15rem; font-weight: 700;">
+              <i data-lucide="calculator"></i>
+              <span>Rampa İstif Özet Tablosu</span>
+            </h3>
+            <p class="settings-card-desc" style="font-size: 0.75rem; margin-bottom: 0.5rem;">Emval cinslerine göre toplanan Ster ve kalan miktarlar.</p>
+            
+            <div class="table-container">
+              <table class="table-responsive">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">Emvalin Cinsi</th>
+                    <th style="text-align: center;">Toplam Ster</th>
+                    <th style="text-align: center;">Satıldı</th>
+                    <th style="text-align: center;">Kalktı</th>
+                    <th style="text-align: center; color: var(--text-success); font-weight: 700;">Kalan</th>
+                  </tr>
+                </thead>
+                <tbody id="rampaSummaryTableBody">
+                  <!-- JS ile dinamik hesaplanıp dolacak -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SEKME 5: ŞEFLİK PANELİ (SEFLIK) -->
+      <!-- ========================================== -->
+      <section id="seflikTab" class="tab-content">
+        <div class="settings-grid">
+          
+          <!-- Sol Kolon: Genel Ayarlar & Depo Yönetimi -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Şeflik Genel Ayarları -->
+            <div class="settings-card">
+              <h3 class="settings-card-title" style="color: var(--secondary);">
+                <i data-lucide="building-2"></i>
+                <span>Şeflik Genel Ayarları</span>
+              </h3>
+              <p class="settings-card-desc">Sistemin özelleştirileceği Orman İşletme Şefliği adını belirleyin.</p>
+              <form id="seflikNameForm" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <input type="text" id="seflikNameInput" class="form-control" style="flex-grow: 1;" placeholder="Örn: Koyuncu" required>
+                <button type="submit" class="btn btn-primary">Güncelle</button>
+              </form>
+            </div>
+
+            <!-- Depolar Yönetimi -->
+            <div class="settings-card" id="seflikDepoCard" style="display: flex; flex-direction: column;">
+              <h3 class="settings-card-title" style="color: var(--secondary);">
+                <i data-lucide="warehouse"></i>
+                <span>Depolar Yönetimi</span>
+              </h3>
+              <p class="settings-card-desc">Ölçü tespitlerinde kullanılacak depoları (Dallık, Rampa, Kalkım vb.) yönetin.</p>
+              <div class="table-container" style="flex: 1; min-height: 0; overflow-y: auto; margin-top: 0.5rem;">
+                <table class="table-responsive" style="font-size: 0.8rem;">
+                  <thead>
+                    <tr>
+                      <th style="text-align: left;">Depo Adı</th>
+                      <th style="width: 50px; text-align: center;">İşlem</th>
+                    </tr>
+                  </thead>
+                  <tbody id="seflikDepoTableBody">
+                    <!-- JS ile dolacak -->
+                  </tbody>
+                </table>
+              </div>
+              <form id="seflikDepoForm" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <input type="text" id="seflikDepoInput" class="form-control" style="flex-grow: 1;" placeholder="Örn: Rampa" required>
+                <button type="submit" class="btn btn-outline" style="padding: 0.6rem 1rem;">Ekle</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Kesim Nevileri Yönetimi -->
+          <div class="settings-card" id="seflikNeviCard">
+            <h3 class="settings-card-title" style="color: var(--accent-blue);">
+              <i data-lucide="sliders"></i>
+              <span>Kesim Nevileri Yönetimi</span>
+            </h3>
+            <p class="settings-card-desc">Sistemde kullanılan kesim nevilerini (Bakım, İlk Aralama vb.) yönetin.</p>
+            <div class="table-container" style="flex: 1; min-height: 0; overflow-y: auto; margin-top: 0.5rem;">
+              <table class="table-responsive" style="font-size: 0.8rem;">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">Kesim Nevi</th>
+                    <th style="width: 50px; text-align: center;">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody id="seflikNeviTableBody">
+                  <!-- JS ile dolacak -->
+                </tbody>
+              </table>
+            </div>
+            <form id="seflikNeviForm" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              <input type="text" id="seflikNeviInput" class="form-control" style="flex-grow: 1;" placeholder="Örn: Sıklık Bakımı" required>
+              <button type="submit" class="btn btn-outline" style="padding: 0.6rem 1rem;">Ekle</button>
+            </form>
+          </div>
+
+          <!-- Şeflik Bölme Listesi Yönetimi -->
+          <div class="settings-card" id="seflikCompCard">
+            <h3 class="settings-card-title" style="color: var(--primary);">
+              <i data-lucide="hash"></i>
+              <span>Şeflik Bölme Listesi</span>
+            </h3>
+            <p class="settings-card-desc">Şefliğinizde yer alan tüm geçerli bölme numaralarını tanımlayın.</p>
+            <div class="table-container" style="flex: 1; min-height: 0; overflow-y: auto; margin-top: 0.5rem;">
+              <table class="table-responsive" style="font-size: 0.8rem;">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">Bölme No</th>
+                    <th style="width: 50px; text-align: center;">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody id="seflikCompsTableBody">
+                  <!-- JS ile dolacak -->
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Tekil Ekleme -->
+            <form id="seflikCompSingleForm" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              <input type="text" id="seflikCompSingleInput" class="form-control" style="flex-grow: 1;" placeholder="Örn: 94 veya 94a" required>
+              <button type="submit" class="btn btn-outline" style="padding: 0.6rem 1rem;">Ekle</button>
+            </form>
+            
+            <!-- Toplu Ekleme / Jeneratör -->
+            <div style="border-top: 1px solid var(--border-color); margin-top: 1rem; padding-top: 1rem;">
+              <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Toplu Bölme Ekle (Örn: 1-94 veya 1,2,3,4)</label>
+              <form id="seflikCompBulkForm" style="display: flex; gap: 0.5rem;">
+                <input type="text" id="seflikCompBulkInput" class="form-control" style="flex-grow: 1;" placeholder="1-94 veya virgülle ayrılmış" required>
+                <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1rem;">Oluştur</button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="settings-grid" style="grid-template-columns: 1fr;">
+          
+          <!-- Ağaç Türleri Yönetimi -->
+          <div class="settings-card">
+            <h3 class="settings-card-title" style="color: var(--primary);">
+              <i data-lucide="trees"></i>
+              <span>Ağaç Türleri Yönetimi</span>
+            </h3>
+            <p class="settings-card-desc">Sistemde kullanılan ağaç türü kodlarını ve bunların İbreli/Yapraklı sınıflandırmasını belirleyin.</p>
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+              <table class="table-responsive">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">Tür Kodu (Kısaltma)</th>
+                    <th style="text-align: left;">Ağaç Türü Adı</th>
+                    <th style="text-align: left;">Sınıfı (Grup)</th>
+                    <th style="width: 80px; text-align: center;">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody id="seflikSpeciesTableBody">
+                  <!-- JS ile dolacak -->
+                </tbody>
+              </table>
+            </div>
+            <form id="seflikSpeciesForm" style="display: flex; flex-wrap: wrap; gap: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+              <div style="flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 0.25rem;">
+                <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Kısaltma Kod</label>
+                <input type="text" id="speciesCodeInput" class="form-control" placeholder="Örn: Çs" required>
+              </div>
+              <div style="flex: 2; min-width: 180px; display: flex; flex-direction: column; gap: 0.25rem;">
+                <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Ağaç Türü Adı</label>
+                <input type="text" id="speciesNameInput" class="form-control" placeholder="Örn: Sarıçam" required>
+              </div>
+              <div style="flex: 1.5; min-width: 150px; display: flex; flex-direction: column; gap: 0.25rem;">
+                <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Sınıfı (Grup)</label>
+                <select id="speciesTypeInput" class="form-control">
+                  <option value="İbreli">İbreli</option>
+                  <option value="Yapraklı">Yapraklı</option>
+                </select>
+              </div>
+              <div style="display: flex; align-items: flex-end;">
+                <button type="submit" class="btn btn-primary" style="height: 38px;">Yeni Tür Ekle</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Ürün Cinsleri Yönetimi -->
+          <div class="settings-card">
+            <h3 class="settings-card-title" style="color: var(--secondary);">
+              <i data-lucide="boxes"></i>
+              <span>Ürün Cinsleri Yönetimi</span>
+            </h3>
+            <p class="settings-card-desc">Ölçü tespitlerinde kullanılacak ürün cinslerini ve bunların ölçü birimlerini belirleyin.</p>
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+              <table class="table-responsive">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">Ürün Cinsi</th>
+                    <th style="text-align: left;">Ölçü Birimi</th>
+                    <th style="text-align: left;">Hesaplama Şekli</th>
+                    <th style="width: 80px; text-align: center;">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody id="seflikAssortmentTableBody">
+                  <!-- JS ile dolacak -->
+                </tbody>
+              </table>
+            </div>
+            <form id="seflikAssortmentForm" style="display: flex; flex-wrap: wrap; gap: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+              <div style="flex: 2; min-width: 180px; display: flex; flex-direction: column; gap: 0.25rem;">
+                <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Ürün Cinsi Adı</label>
+                <input type="text" id="assortmentNameInput" class="form-control" placeholder="Örn: Sanayi Odunu" required>
+              </div>
+              <div style="flex: 1.5; min-width: 150px; display: flex; flex-direction: column; gap: 0.25rem;">
+                <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Ölçü Birimi</label>
+                <select id="assortmentUnitInput" class="form-control">
+                  <option value="m3">m³ (Hacim / Adet)</option>
+                  <option value="Ster">Ster (Yığın / Ster)</option>
+                </select>
+              </div>
+              <div style="display: flex; align-items: flex-end;">
+                <button type="submit" class="btn btn-primary" style="height: 38px;">Yeni Cins Ekle</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- İstif Emval Cinsleri Yönetimi -->
+          <div class="settings-card">
+            <h3 class="settings-card-title" style="color: var(--accent-gold);">
+              <i data-lucide="layers"></i>
+              <span>İstif Emval Cinsleri Yönetimi</span>
+            </h3>
+            <p class="settings-card-desc">Rampa istiflerinde kullanılacak emval cinslerini yönetin.</p>
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+              <table class="table-responsive">
+                <thead>
+                  <tr>
+                    <th style="text-align: left;">Emval Cinsi</th>
+                    <th style="width: 80px; text-align: center;">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody id="seflikRampaCinsTableBody">
+                  <!-- JS ile dolacak -->
+                </tbody>
+              </table>
+            </div>
+            <form id="seflikRampaCinsForm" style="display: flex; gap: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+              <input type="text" id="rampaCinsInput" class="form-control" style="flex-grow: 1;" placeholder="Örn: İbreli Lif Yonga" required>
+              <button type="submit" class="btn btn-primary" style="height: 38px;">Yeni Emval Cinsi Ekle</button>
+            </form>
+          </div>
+
+        </div>
+
+        <!-- Aylık İş Programı Yönetimi -->
+        <div class="settings-card" style="margin-top: 1.5rem;">
+          <h3 class="settings-card-title" style="color: var(--primary);">
+            <i data-lucide="calendar"></i>
+            <span id="seflikIsProgramiTitle">Aylık İş Programı Yönetimi (2026 Yılı)</span>
+          </h3>
+          <p class="settings-card-desc">Şefliğinizin seçilen yıla ait kümülatif aylık üretim hedeflerini (iş programını) girin. Hücrelerdeki değerler kümülatif hedeflerdir.</p>
+          
+          <div class="table-container" style="overflow-x: auto; margin-top: 1rem;">
+            <table class="table-responsive" style="font-size: 0.8rem; text-align: center; width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr>
+                  <th style="min-width: 180px; text-align: left; background-color: var(--bg-active); border-right: 2px solid var(--border-color);">Ürün Çeşidi (Kümülatif)</th>
+                  <th style="min-width: 60px; text-align: center; background-color: var(--bg-active); border-right: 2px solid var(--border-color);">Birim</th>
+                  <th style="min-width: 70px; text-align: center;">Ocak</th>
+                  <th style="min-width: 70px; text-align: center;">Şubat</th>
+                  <th style="min-width: 70px; text-align: center;">Mart</th>
+                  <th style="min-width: 70px; text-align: center;">Nisan</th>
+                  <th style="min-width: 70px; text-align: center;">Mayıs</th>
+                  <th style="min-width: 70px; text-align: center;">Haziran</th>
+                  <th style="min-width: 70px; text-align: center;">Temmuz</th>
+                  <th style="min-width: 70px; text-align: center;">Ağustos</th>
+                  <th style="min-width: 70px; text-align: center;">Eylül</th>
+                  <th style="min-width: 70px; text-align: center;">Ekim</th>
+                  <th style="min-width: 70px; text-align: center;">Kasım</th>
+                  <th style="min-width: 70px; text-align: center;">Aralık</th>
+                </tr>
+              </thead>
+              <tbody id="seflikIsProgramiTableBody">
+                <!-- JS ile dinamik input satırları çizilecek -->
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+            <button class="btn btn-primary" onclick="saveSeflikIsProgrami()">
+              <i data-lucide="save"></i>
+              <span>İş Programını Kaydet</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SEKME 4: YEDEKLEME VE AYARLAR (SETTINGS) -->
+      <!-- ========================================== -->
+      <section id="settingsTab" class="tab-content">
+        <div class="settings-grid">
+          <!-- Excel Dosyası Alımı -->
+          <div class="settings-card">
+            <h3 class="settings-card-title" style="color: var(--secondary);">
+              <i data-lucide="file-spreadsheet"></i>
+              <span>Excel (.xlsx) Dışa Aktarma</span>
+            </h3>
+            <p class="settings-card-desc">Bölme hedeflerini, gerçekleşen ölçü listelerini veya rampa istif cetvellerini biçimlendirilmiş ve formüllü Excel (.xlsx) formatında bilgisayarınıza indirebilirsiniz.</p>
+            <div class="settings-actions">
+              <button class="btn btn-outline" onclick="exportCSV('compartments')">
+                <i data-lucide="download"></i>
+                <span>Bölme Tablosunu İndir</span>
+              </button>
+              <button class="btn btn-outline" onclick="exportCSV('measurements')">
+                <i data-lucide="download"></i>
+                <span>Ölçü Tespit Tablosunu İndir</span>
+              </button>
+              <button class="btn btn-outline" onclick="exportCSV('rampa')">
+                <i data-lucide="download"></i>
+                <span>Rampa İstif Tablosunu İndir</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Veri Yedekleme -->
+          <div class="settings-card">
+            <h3 class="settings-card-title" style="color: var(--primary);">
+              <i data-lucide="database"></i>
+              <span>Veri Yedekleme & Geri Yükleme</span>
+            </h3>
+            <p class="settings-card-desc">Tüm sistem verilerinizi (bölmeler ve ölçü tespitleri) tek bir JSON dosyası olarak yedekleyebilir veya bilgisayarınızdaki bir yedeği yükleyebilirsiniz.</p>
+            <div class="settings-actions" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+              <button class="btn btn-primary" onclick="exportJsonBackup()">
+                <i data-lucide="shield-check"></i>
+                <span>Bilgisayara Yedek Al (JSON)</span>
+              </button>
+              
+              <div style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <label for="importFile" class="btn btn-outline" style="display: flex; justify-content: center; width: 100%;">
+                  <i data-lucide="upload-cloud"></i>
+                  <span>Yedek Dosyası Yükle (JSON)</span>
+                </label>
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Veritabanı Sıfırlama -->
+          <div class="settings-card" style="border-color: rgba(234, 84, 85, 0.2);">
+            <h3 class="settings-card-title" style="color: var(--accent-red);">
+              <i data-lucide="refresh-cw"></i>
+              <span>Sistemi Sıfırla</span>
+            </h3>
+            <p class="settings-card-desc">Uygulamadaki tüm kayıtları temizleyerek orjinal örnek verileri (Koyuncu Orman İşletme Şefliği şablonunu) geri yükler.</p>
+            <div class="settings-actions">
+              <button class="btn btn-danger" onclick="resetDatabase()">
+                <i data-lucide="alert-triangle"></i>
+                <span>Örnek Verileri Geri Yükle</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 1: BÖLME EKLEME / DÜZENLEME MODAL -->
+  <!-- ========================================== -->
+  <div id="compartmentModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="compModalTitle" class="modal-title">Bölme Kayıt Formu</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <form id="compartmentForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="compNo">Bölme No</label>
+              <input type="text" id="compNo" class="form-control" placeholder="Örn: 13, 41a, 85" required list="seflikCompsDatalist">
+              <datalist id="seflikCompsDatalist"></datalist>
+            </div>
+            <div class="form-group">
+              <label for="compStatus">Üretim Durumu</label>
+              <select id="compStatus" class="form-control">
+                <option value="Daha Başlamadı">Daha Başlamadı</option>
+                <option value="Devam Ediyor">Devam Ediyor</option>
+                <option value="Bitti">Bitti</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="compMethod">Üretim Şekli</label>
+              <select id="compMethod" class="form-control">
+                <option value="Vahidi Fiyat">Vahidi Fiyat</option>
+                <option value="Dikili Satış">Dikili Satış</option>
+                <option value="Tahsisli">Tahsisli</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="compNevi">Kesim Nevi</label>
+              <select id="compNevi" class="form-control" required>
+                <!-- JS Dinamik yükleyecek -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="compPlanIbreli">Planlanan İbreli (m³)</label>
+              <input type="number" id="compPlanIbreli" class="form-control" step="0.001" min="0" placeholder="0.000">
+            </div>
+            <div class="form-group">
+              <label for="compPlanYaprak">Planlanan Yapraklı (m³)</label>
+              <input type="number" id="compPlanYaprak" class="form-control" step="0.001" min="0" placeholder="0.000">
+            </div>
+            <div class="form-group full-width">
+              <label for="compContractor">Yüklenici (Kooperatif / Şahıs)</label>
+              <input type="text" id="compContractor" class="form-control" placeholder="Örn: Akçakoyun Koop.">
+            </div>
+            
+            <!-- Sözleşme Süreleri -->
+            <div class="form-group">
+              <label for="compStartDate">Sözleşme Başlangıç</label>
+              <input type="date" id="compStartDate" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="compEndDate">Sözleşme Bitiş</label>
+              <input type="date" id="compEndDate" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="compExtDays">Verilen Ek Süre (Gün)</label>
+              <input type="number" id="compExtDays" class="form-control" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="compExtEndDate">Ek Süreli Bitiş Tarihi</label>
+              <input type="date" id="compExtEndDate" class="form-control" readonly style="background-color: var(--border-color); cursor: not-allowed;">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-close-modal">Kapat</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 2: ÖLÇÜ TESPİT GİRİŞ/DÜZENLEME MODAL -->
+  <!-- ========================================== -->
+  <div id="measurementModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="measModalTitle" class="modal-title">Ölçü Tespit Girişi</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <form id="measurementForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="measCompNo">İlişkili Bölme</label>
+              <div class="custom-dropdown" id="measCompDropdown">
+                <input type="hidden" id="measCompNo" required>
+                <div class="custom-dropdown-btn">Bölme Seçiniz...</div>
+                <div class="custom-dropdown-menu">
+                  <!-- JS Dinamik yükleyecek -->
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="measNevi">Kesim Nevi</label>
+              <select id="measNevi" class="form-control" required>
+                <!-- JS Dinamik yükleyecek -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="measSpecies">Ağaç Türü</label>
+              <select id="measSpecies" class="form-control" required>
+                <!-- JS Dinamik yükleyecek -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="measAssortment">Ürün Cinsi</label>
+              <select id="measAssortment" class="form-control" required>
+                <!-- JS Dinamik yükleyecek -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="measCount">Adet</label>
+              <input type="number" id="measCount" class="form-control" min="0" placeholder="Sadece Tomruk/Direk vb. için">
+            </div>
+            <div class="form-group">
+              <label for="measVolume">Hacim (m³)</label>
+              <input type="number" id="measVolume" class="form-control" step="0.001" min="0" placeholder="0.000">
+            </div>
+            <div class="form-group">
+              <label for="measStere">Ster</label>
+              <input type="number" id="measStere" class="form-control" step="0.1" min="0" placeholder="Lif/Yakacak için">
+            </div>
+            <div class="form-group">
+              <label for="measDepo">Depo / Rampa Adı</label>
+              <select id="measDepo" class="form-control" required>
+                <!-- JS Dinamik yükleyecek -->
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label for="measDate">Ölçüm / Teslim Tarihi</label>
+              <input type="date" id="measDate" class="form-control" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-close-modal">Kapat</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 3: RAMPA İSTİF EKLE / DÜZENLE MODAL -->
+  <!-- ========================================== -->
+  <div id="rampaModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="rampaModalTitle" class="modal-title">İstif Kayıt Formu</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <form id="rampaForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="rampaIstifNo">İstif No</label>
+              <input type="number" id="rampaIstifNo" class="form-control" placeholder="Örn: 24" required min="1">
+            </div>
+            <div class="form-group">
+              <label for="rampaCompNo">Bölme No</label>
+              <div class="custom-dropdown" id="rampaCompDropdown">
+                <input type="hidden" id="rampaCompNo" required>
+                <div class="custom-dropdown-btn">Bölme Seçiniz...</div>
+                <div class="custom-dropdown-menu">
+                  <!-- JS ile bölmeler dolacak -->
+                </div>
+              </div>
+            </div>
+            <div class="form-group full-width">
+              <label for="rampaCins">Emvalin Cinsi</label>
+              <div class="custom-dropdown" id="rampaCinsDropdown">
+                <input type="hidden" id="rampaCins" required>
+                <div class="custom-dropdown-btn">Emval Seçiniz...</div>
+                <div class="custom-dropdown-menu">
+                  <!-- JS ile emval cinsleri dolacak -->
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="rampaSter">Miktar (Ster)</label>
+              <input type="number" id="rampaSter" class="form-control" step="1" min="0" placeholder="0" required>
+            </div>
+            <div class="form-group" style="justify-content: center;">
+              <!-- Spacer -->
+            </div>
+            
+            <!-- Durum Checkbox'ları -->
+            <div class="form-group full-width" style="flex-direction: row; gap: 1rem; margin-top: 0.5rem; justify-content: flex-start; align-items: center; flex-wrap: wrap;">
+              <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">
+                <input type="checkbox" id="rampaStatusRampada" style="width: 16px; height: 16px; accent-color: var(--primary);" checked>
+                <span>Rampada (+)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">
+                <input type="checkbox" id="rampaStatusSatildi" style="width: 16px; height: 16px; accent-color: var(--secondary);">
+                <span>Satıldı (+)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">
+                <input type="checkbox" id="rampaStatusKalkti" style="width: 16px; height: 16px; accent-color: var(--accent-red);">
+                <span>Rampadan Kalktı (+)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-close-modal">Kapat</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPT YÜKLEMELERİ -->
+  <script src="js/datav2.js"></script>
+  <script src="js/chartsv2.js"></script>
+  <script src="js/appv2.js"></script>
+
+  <!-- PWA Service Worker Kaydı -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('[PWA] Service Worker kayıt başarılı:', reg.scope))
+          .catch((err) => console.warn('[PWA] Service Worker kayıt başarısız:', err));
+      });
+    }
+  </script>
+</body>
+</html>
